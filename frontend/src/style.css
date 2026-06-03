@@ -1,0 +1,87 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+.light {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #222;
+}
+
+.dark {
+  min-height: 100vh;
+  background: #141414;
+  color: #eee;
+}
+
+.dark .page {
+  background: #141414 !important;
+}
+
+.dark .card,
+.dark .login-box {
+  background: #1f1f1f !important;
+  color: #eee;
+}
+
+.dark input,
+.dark textarea {
+  background: #2a2a2a;
+  color: #eee;
+  border-color: #444;
+}
+
+.dark pre,
+.dark .result,
+.dark .stat,
+.dark .spot,
+.dark .plan-item {
+  background: #2a2a2a !important;
+  color: #eee;
+  border-color: #444;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 768px) {
+  .page {
+    padding: 15px !important;
+  }
+
+  .card {
+    width: 100% !important;
+    padding: 20px !important;
+  }
+
+  .top {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 15px;
+  }
+
+  .top-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  button {
+    width: auto;
+  }
+
+  pre {
+    font-size: 14px;
+  }
+}
