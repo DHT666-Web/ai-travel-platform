@@ -1,0 +1,59 @@
+name: Deploy to Aliyun ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/ecs_key
+          chmod 600 ~/.ssh/ecs_key
+          ssh-keyscan -H ${{ secrets.ECS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Package project
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='backend/.env' \
+            --exclude='backend/.venv' \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/dist' \
+            -czf ai-travel-platform.tar.gz .
+
+      - name: Upload project to ECS
+        run: |
+          ssh -i ~/.ssh/ecs_key ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} "mkdir -p /opt/ai-travel-platform"
+          scp -i ~/.ssh/ecs_key ai-travel-platform.tar.gz ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }}:/opt/ai-travel-platform/
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh -i ~/.ssh/ecs_key ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} << 'EOF'
+            cd /opt/ai-travel-platform
+            tar -xzf ai-travel-platform.tar.gz
+
+            cat > .env << ENVEOF
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE=ai_travel_platform
+          FRONTEND_PORT=80
+
+          DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions
+          DEEPSEEK_MODEL=deepseek-v4-flash
+          ENVEOF
+
+            docker compose down
+            docker compose up -d --build
+            docker ps
+          EOF
