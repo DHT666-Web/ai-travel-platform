@@ -30,18 +30,18 @@ jobs:
             --exclude='backend/.venv' \
             --exclude='frontend/node_modules' \
             --exclude='frontend/dist' \
-            -czf ai-travel-platform.tar.gz .
+            -czf /tmp/ai-travel-platform.tar.gz .
 
       - name: Upload project to ECS
         run: |
           ssh -i ~/.ssh/ecs_key ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} "mkdir -p /opt/ai-travel-platform"
-          scp -i ~/.ssh/ecs_key ai-travel-platform.tar.gz ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }}:/opt/ai-travel-platform/
+          scp -i ~/.ssh/ecs_key /tmp/ai-travel-platform.tar.gz ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }}:/opt/ai-travel-platform/
 
       - name: Deploy with Docker Compose
         run: |
           ssh -i ~/.ssh/ecs_key ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} << 'EOF'
             cd /opt/ai-travel-platform
-            tar -xzf ai-travel-platform.tar.gz
+            tar -xzf /tmp/ai-travel-platform.tar.gz
 
             cat > .env << ENVEOF
           MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
