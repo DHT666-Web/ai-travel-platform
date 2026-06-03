@@ -17,7 +17,7 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/ecs_key
+          echo "${{ secrets.ECS_SSH_KEY_BASE64 }}" | base64 -d > ~/.ssh/ecs_key
           chmod 600 ~/.ssh/ecs_key
           ssh-keyscan -H ${{ secrets.ECS_HOST }} >> ~/.ssh/known_hosts
 
