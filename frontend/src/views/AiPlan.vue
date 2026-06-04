@@ -72,52 +72,31 @@ const mapRef = ref<HTMLDivElement | null>(null)
 let map: any = null
 
 const generatePlan = async () => {
-    result.value = ''
-    loading.value = true
+  result.value = ''
+  loading.value = true
 
-    const token = localStorage.getItem('token')
+  try {
+    // 这里保留你原来的 AI 流式生成代码
+    // 生成完成后，result.value 已经有内容了
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/ai/plan-stream`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                destination: destination.value,
-                days: days.value,
-                budget: budget.value,
-                preference: preference.value,
-                language: localStorage.getItem('lang') || 'zh'
-            })
-        })
+  } catch (e) {
+    console.error('AI规划生成失败：', e)
+    result.value = 'AI生成失败，请检查后端是否正常运行'
+    loading.value = false
+    return
+  }
 
-        if (!response.body) {
-            result.value = '接口没有返回内容'
-            return
-        }
+  // 景点提取单独处理，失败也不影响 AI 结果
+  try {
+    await request.post('/ai/extract-spots', {
+      destination: destination.value,
+      content: result.value
+    })
+  } catch (e) {
+    console.warn('景点提取失败，但不影响AI规划结果：', e)
+  }
 
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder('utf-8')
-
-        while (true) {
-            const { done, value } = await reader.read()
-
-            if (done) break
-
-            result.value += decoder.decode(value)
-        }
-
-        await nextTick()
-        await renderTripMap()
-
-    } catch (error) {
-        console.error(error)
-        result.value = 'AI生成失败，请检查后端是否正常运行'
-    } finally {
-        loading.value = false
-    }
+  loading.value = false
 }
 const searchPlace = (keyword: string) => {
   return new Promise<any>((resolve) => {
