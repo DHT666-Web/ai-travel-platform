@@ -3,17 +3,18 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import uuid
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from jose import jwt, JWTError
-import hashlib
-import os
-import json
-import requests
 from dotenv import load_dotenv
+
+import hashlib
+import json
+import os
+import requests
+import uuid
 
 from database import engine, get_db
 from models import Base, User, TravelPlan, ScenicSpot, AiLog
@@ -30,18 +31,26 @@ from schemas import (
 from agent_service import analyze_user_need, search_spots, build_spot_text, build_plan_prompt
 
 
-app = FastAPI()
-os.makedirs("static/uploads", exist_ok=True)
+app = FastAPI(title="AI智能旅游规划平台")
 
+os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+# CORS：本地开发 + ECS 公网访问都允许
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://121.40.139.220",
+        "http://121.40.139.220:8080",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 security = HTTPBearer()
 
@@ -57,19 +66,20 @@ DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL")
 
 
-# 密码加密
+# =========================
+# 工具函数
+# =========================
+
 def hash_password(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-# 生成 token
 def create_token(username: str):
     data = {"sub": username}
     token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
-# 验证 token，获取当前用户
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
@@ -90,13 +100,15 @@ def get_current_user(
     return user
 
 
-# 判断是否为管理员
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="没有管理员权限")
-
     return current_user
 
+
+# =========================
+# 基础测试接口
+# =========================
 
 @app.get("/")
 def root():
@@ -113,7 +125,10 @@ def db_test():
     return {"message": "数据库连接测试接口正常"}
 
 
-# 注册接口
+# =========================
+# 用户注册 / 登录
+# =========================
+
 @app.post("/register")
 def register(user: UserRegister, db: Session = Depends(get_db)):
     old_user = db.query(User).filter(User.username == user.username).first()
@@ -122,7 +137,9 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="用户名已存在")
 
     new_user = User(
-        username=user.username, password=hash_password(user.password), role="user"
+        username=user.username,
+        password=hash_password(user.password),
+        role="user",
     )
 
     db.add(new_user)
@@ -140,7 +157,6 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
     }
 
 
-# 登录接口
 @app.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
@@ -153,10 +169,18 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 
     token = create_token(db_user.username)
 
-    return {"code": 200, "message": "登录成功", "token": token, "role": db_user.role}
+    return {
+        "code": 200,
+        "message": "登录成功",
+        "token": token,
+        "role": db_user.role,
+    }
 
 
-# 新增旅游规划
+# =========================
+# 旅游规划 CRUD
+# =========================
+
 @app.post("/travel-plans")
 def create_travel_plan(
     plan: TravelPlanCreate,
@@ -178,7 +202,6 @@ def create_travel_plan(
     return {"code": 200, "message": "新增旅游规划成功", "data": new_plan}
 
 
-# 查询全部旅游规划
 @app.get("/travel-plans")
 def get_travel_plans(
     db: Session = Depends(get_db),
@@ -192,7 +215,6 @@ def get_travel_plans(
     return {"code": 200, "message": "查询成功", "data": plans}
 
 
-# 查询单个旅游规划
 @app.get("/travel-plans/{plan_id}")
 def get_travel_plan(
     plan_id: int,
@@ -203,13 +225,13 @@ def get_travel_plan(
 
     if not plan:
         raise HTTPException(status_code=404, detail="旅游规划不存在")
+
     if current_user.role != "admin" and plan.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="不能访问别人的行程")
 
     return {"code": 200, "message": "查询成功", "data": plan}
 
 
-# 修改旅游规划
 @app.put("/travel-plans/{plan_id}")
 def update_travel_plan(
     plan_id: int,
@@ -221,6 +243,7 @@ def update_travel_plan(
 
     if not plan:
         raise HTTPException(status_code=404, detail="旅游规划不存在")
+
     if current_user.role != "admin" and plan.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="不能修改别人的行程")
 
@@ -242,7 +265,6 @@ def update_travel_plan(
     return {"code": 200, "message": "修改成功", "data": plan}
 
 
-# 删除旅游规划
 @app.delete("/travel-plans/{plan_id}")
 def delete_travel_plan(
     plan_id: int,
@@ -253,6 +275,7 @@ def delete_travel_plan(
 
     if not plan:
         raise HTTPException(status_code=404, detail="旅游规划不存在")
+
     if current_user.role != "admin" and plan.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="不能删除别人的行程")
 
@@ -262,18 +285,19 @@ def delete_travel_plan(
     return {"code": 200, "message": "删除成功"}
 
 
-# AI 流式生成旅游规划
+# =========================
+# AI 旅游规划
+# =========================
+
 @app.post("/ai/plan-stream")
 def ai_plan_stream(
     req: AiPlanRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    
 ):
     if not DEEPSEEK_API_KEY:
         raise HTTPException(status_code=500, detail="没有配置 DEEPSEEK_API_KEY")
 
-    # 轻量 Agent 流程
     user_need = analyze_user_need(req)
     spots = search_spots(db, user_need["destination"])
     spot_text = build_spot_text(spots)
@@ -292,8 +316,14 @@ def ai_plan_stream(
                 json={
                     "model": DEEPSEEK_MODEL,
                     "messages": [
-                        {"role": "system", "content": "你是一个专业的旅游规划助手。"},
-                        {"role": "user", "content": prompt},
+                        {
+                            "role": "system",
+                            "content": "你是一个专业的旅游规划助手。",
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt,
+                        },
                     ],
                     "stream": True,
                 },
@@ -325,7 +355,9 @@ def ai_plan_stream(
                         continue
 
             ai_log = AiLog(
-                user_id=current_user.id, prompt=prompt, response=full_response
+                user_id=current_user.id,
+                prompt=prompt,
+                response=full_response,
             )
 
             db.add(ai_log)
@@ -366,23 +398,28 @@ def extract_spots(
             DEEPSEEK_BASE_URL,
             headers={
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
             json={
                 "model": DEEPSEEK_MODEL,
                 "messages": [
-                    {"role": "system", "content": "你只负责从旅游文本中提取景点名称。"},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "你只负责从旅游文本中提取景点名称。",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
                 ],
-                "stream": False
+                "stream": False,
             },
-            timeout=60
+            timeout=60,
         )
 
         response.raise_for_status()
 
         text = response.json()["choices"][0]["message"]["content"].strip()
-
         text = text.replace("```json", "").replace("```", "").strip()
 
         names = json.loads(text)
@@ -393,17 +430,43 @@ def extract_spots(
         return {
             "code": 200,
             "message": "景点提取成功",
-            "data": names
+            "data": names,
         }
 
     except Exception as e:
         return {
             "code": 500,
             "message": f"景点提取失败：{str(e)}",
-            "data": []
+            "data": [],
         }
 
-# 管理员：新增景点
+
+# =========================
+# 景点管理
+# =========================
+
+# 查询景点列表：公开访问，不需要登录
+# 这样地图展示、景点展示、RAG 检索都不会因为 token 丢失而 401
+@app.get("/scenic-spots")
+def get_scenic_spots(
+    city: str = "",
+    db: Session = Depends(get_db),
+):
+    query = db.query(ScenicSpot)
+
+    if city:
+        query = query.filter(ScenicSpot.city == city)
+
+    spots = query.all()
+
+    return {
+        "code": 200,
+        "message": "查询成功",
+        "data": spots,
+    }
+
+
+# 新增景点：管理员权限
 @app.post("/scenic-spots")
 def create_scenic_spot(
     data: ScenicCreate,
@@ -426,27 +489,14 @@ def create_scenic_spot(
     db.commit()
     db.refresh(spot)
 
-    return {"code": 200, "message": "新增景点成功", "data": spot}
+    return {
+        "code": 200,
+        "message": "新增景点成功",
+        "data": spot,
+    }
 
 
-# 登录用户：查询景点列表
-@app.get("/scenic-spots")
-def get_scenic_spots(
-    city: str = "",
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    query = db.query(ScenicSpot)
-
-    if city:
-        query = query.filter(ScenicSpot.city == city)
-
-    spots = query.all()
-
-    return {"code": 200, "message": "查询成功", "data": spots}
-
-
-# 管理员：修改景点
+# 修改景点：管理员权限
 @app.put("/scenic-spots/{spot_id}")
 def update_scenic_spot(
     spot_id: int,
@@ -465,10 +515,14 @@ def update_scenic_spot(
     db.commit()
     db.refresh(spot)
 
-    return {"code": 200, "message": "修改景点成功", "data": spot}
+    return {
+        "code": 200,
+        "message": "修改景点成功",
+        "data": spot,
+    }
 
 
-# 管理员：删除景点
+# 删除景点：管理员权限
 @app.delete("/scenic-spots/{spot_id}")
 def delete_scenic_spot(
     spot_id: int,
@@ -483,10 +537,16 @@ def delete_scenic_spot(
     db.delete(spot)
     db.commit()
 
-    return {"code": 200, "message": "删除景点成功"}
+    return {
+        "code": 200,
+        "message": "删除景点成功",
+    }
 
 
-# 管理员：后台统计接口
+# =========================
+# 管理员数据大屏
+# =========================
+
 @app.get("/admin/statistics")
 def admin_statistics(
     db: Session = Depends(get_db),
@@ -506,7 +566,10 @@ def admin_statistics(
     )
 
     top_destinations = [
-        {"destination": item.destination, "count": item.count}
+        {
+            "destination": item.destination,
+            "count": item.count,
+        }
         for item in top_destinations_query
     ]
 
@@ -523,10 +586,14 @@ def admin_statistics(
     }
 
 
+# =========================
+# 文件上传
+# =========================
+
 @app.post("/upload")
 def upload_file(
     file: UploadFile = File(...),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_admin),
 ):
     file_ext = file.filename.split(".")[-1]
     file_name = f"{uuid.uuid4()}.{file_ext}"
@@ -535,10 +602,11 @@ def upload_file(
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
-    file_url = f"http://127.0.0.1:8000/static/uploads/{file_name}"
+    # 用相对路径，避免部署到 ECS 后还返回 127.0.0.1
+    file_url = f"/static/uploads/{file_name}"
 
     return {
         "code": 200,
         "message": "上传成功",
-        "url": file_url
+        "url": file_url,
     }
