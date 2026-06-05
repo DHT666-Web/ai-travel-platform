@@ -59,10 +59,10 @@ declare const AMap: any
 
 const emit = defineEmits(['go-list', 'go-scenic', 'go-admin', 'go-map', 'toggle-theme'])
 
-const destination = ref('北京')
-const days = ref(3)
-const budget = ref('3000元')
-const preference = ref('美食、历史文化、轻松游')
+const destination = ref('')
+const days = ref<number | null>(null)
+const budget = ref('')
+const preference = ref('')
 const result = ref('')
 const loading = ref(false)
 
@@ -72,6 +72,11 @@ const mapRef = ref<HTMLDivElement | null>(null)
 let map: any = null
 
 const generatePlan = async () => {
+  if (!destination.value || !days.value || !budget.value || !preference.value) {
+    alert('请先填写完整旅游需求')
+    return
+  }
+
   result.value = ''
   loading.value = true
 
