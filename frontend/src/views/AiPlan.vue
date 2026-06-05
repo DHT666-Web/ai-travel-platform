@@ -23,10 +23,10 @@
       </div>
 
       <div class="form">
-        <input v-model="destination" :placeholder="t('destination')" />
-        <input v-model.number="days" type="number" :placeholder="t('days')" />
-        <input v-model="budget" :placeholder="t('budget')" />
-        <input v-model="preference" :placeholder="t('preference')" />
+        <input v-model="destination" :placeholder="t('destination')" autocomplete="off" />
+        <input v-model.number="days" type="number" :placeholder="t('days')" autocomplete="off" />
+        <input v-model="budget" :placeholder="t('budget')" autocomplete="off" />
+        <input v-model="preference" :placeholder="t('preference')" autocomplete="off" />
 
         <button @click="generatePlan" :disabled="loading">
           {{ loading ? t('generating') : t('generate') }}
