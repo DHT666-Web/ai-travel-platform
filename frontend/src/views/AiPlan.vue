@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { t, toggleLang } from '../i18n'
 import request from '../api/request'
 
@@ -309,6 +309,13 @@ const savePlan = async () => {
     alert('保存失败，请检查登录状态或后端接口')
   }
 }
+onMounted(() => {
+  destination.value = ''
+  days.value = null
+  budget.value = ''
+  preference.value = ''
+  result.value = ''
+})
 </script>
 
 <style scoped>
