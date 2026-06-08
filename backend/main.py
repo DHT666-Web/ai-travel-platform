@@ -56,7 +56,7 @@ security = HTTPBearer()
 
 Base.metadata.create_all(bind=engine)
 
-# 后端Token生成代码
+
 SECRET_KEY = "ai-travel-secret-key"
 ALGORITHM = "HS256"
 
@@ -75,7 +75,7 @@ def hash_password(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-# 后端Token生成代码
+# 后端生成token返回前端
 def create_token(username: str):
     data = {"sub": username}
     token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
@@ -94,7 +94,7 @@ def get_current_user(
         username = payload.get("sub")
     except JWTError:
         raise HTTPException(status_code=401, detail="token无效")
-
+    # 通过用户名查数据库，得知当前用户对象
     user = db.query(User).filter(User.username == username).first()
 
     if not user:
@@ -303,7 +303,7 @@ def ai_plan_stream(
     if not DEEPSEEK_API_KEY:
         raise HTTPException(status_code=500, detail="没有配置 DEEPSEEK_API_KEY")
 
-    # Agent Service：分析用户需求、检索本地景点数据、整理景点资料、生成最终 prompt
+    # Agent：分析用户需求、检索本地景点数据、整理景点资料、生成最终 prompt
     user_need = analyze_user_need(req)
     spots = search_spots(db, user_need["destination"])
     spot_text = build_spot_text(spots)

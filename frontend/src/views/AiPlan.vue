@@ -5,6 +5,7 @@
         <h2>{{ t('title') }}</h2>
 
         <div class="top-buttons">
+          <button>123</button>
           <button class="list-btn" @click="emit('go-list')">{{ t('myTrips') }}</button>
           <button class="map-btn" @click="emit('go-map')">{{ t('map') }}</button>
 
