@@ -30,12 +30,12 @@ jobs:
             --exclude='backend/.venv' \
             --exclude='frontend/node_modules' \
             --exclude='frontend/dist' \
-            -czf ai-travel-platform.tar.gz .
+            -czf /tmp/ai-travel-platform.tar.gz .
 
       - name: Upload project to ECS
         run: |
           scp -i ~/.ssh/ecs_key \
-            ai-travel-platform.tar.gz \
+            /tmp/ai-travel-platform.tar.gz \
             ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }}:/tmp/ai-travel-platform.tar.gz
 
       - name: Deploy with Docker Compose
