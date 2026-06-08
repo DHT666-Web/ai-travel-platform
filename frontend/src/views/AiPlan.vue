@@ -8,6 +8,7 @@
           <button class="list-btn" @click="emit('go-list')">{{ t('myTrips') }}</button>
           <button class="map-btn" @click="emit('go-map')">{{ t('map') }}</button>
 
+          <!-- 管理员功能按钮 -->
           <button v-if="role === 'admin'" class="scenic-btn" @click="emit('go-scenic')">
             {{ t('scenic') }}
           </button>
@@ -17,6 +18,7 @@
           </button>
 
           <button class="theme-btn" @click="emit('toggle-theme')">{{ t('theme') }}</button>
+          <!-- 中英文切换按钮 -->
           <button class="lang-btn" @click="toggleLang">中 / EN</button>
           <button class="logout" @click="logout">{{ t('logout') }}</button>
         </div>
@@ -83,6 +85,7 @@ const generatePlan = async () => {
   try {
     const token = localStorage.getItem('token')
 
+    // 使用fetch流式输出
     const response = await fetch('/api/ai/plan-stream', {
       method: 'POST',
       headers: {
@@ -93,7 +96,8 @@ const generatePlan = async () => {
         destination: destination.value,
         days: days.value,
         budget: budget.value,
-        preference: preference.value
+        preference: preference.value,
+        language: localStorage.getItem('lang') || 'zh'
       })
     })
 
@@ -101,6 +105,7 @@ const generatePlan = async () => {
       throw new Error('AI规划接口请求失败')
     }
 
+    // 流式接收
     const reader = response.body.getReader()
     const decoder = new TextDecoder('utf-8')
 
@@ -110,6 +115,7 @@ const generatePlan = async () => {
       if (done) break
 
       const chunk = decoder.decode(value, { stream: true })
+      // 追加到result中
       result.value += chunk
     }
   } catch (error) {
@@ -121,17 +127,19 @@ const generatePlan = async () => {
 
   loading.value = false
 
-  // 景点提取和地图渲染单独处理，失败不影响 AI 生成结果
+  // 景点提取和地图渲染单独处理，失败不影响 AI 生成结果（异常处理）
   try {
     const extractRes = await request.post('/ai/extract-spots', {
       destination: destination.value,
       content: result.value,
+      // AI 生成内容跟随当前语言
       language: localStorage.getItem('lang') || 'zh'
     })
 
     const spotNames = extractRes.data?.data || []
 
     if (spotNames.length > 0) {
+      // 调用 renderTripMap 渲染地图
       await renderTripMap(spotNames)
     }
   } catch (error) {
@@ -139,6 +147,7 @@ const generatePlan = async () => {
   }
 }
 
+// 高德搜索景点位置，获取经纬度等信息用于地图展示和路线规划
 const searchPlace = (keyword: string) => {
   return new Promise<any>((resolve) => {
     if (typeof AMap === 'undefined') {
@@ -146,6 +155,7 @@ const searchPlace = (keyword: string) => {
       return
     }
 
+    // 调用高德 PlaceSearch 插件搜索地点
     AMap.plugin('AMap.PlaceSearch', () => {
       const placeSearch = new AMap.PlaceSearch({
         city: destination.value,
@@ -175,6 +185,7 @@ const searchPlace = (keyword: string) => {
   })
 }
 
+  // 降级为 Polyline 直线连接
 const drawFallbackLine = (points: any[]) => {
   const path = points.map((item: any) => [Number(item.lng), Number(item.lat)])
 
@@ -187,8 +198,10 @@ const drawFallbackLine = (points: any[]) => {
   })
 }
 
+// 真实路线规划
 const drawDrivingRoute = (points: any[]) => {
   if (points.length < 2) return
+
 
   AMap.plugin('AMap.Driving', () => {
     const driving = new AMap.Driving({
@@ -242,6 +255,7 @@ const renderTripMap = async (spotNames: string[]) => {
 
   const first = searchedPoints[0]
 
+  // 初始化地图
   map = new AMap.Map(mapRef.value, {
     zoom: 12,
     center: [Number(first.lng), Number(first.lat)],
@@ -254,6 +268,7 @@ const renderTripMap = async (spotNames: string[]) => {
   })
 
   searchedPoints.forEach((point: any, index: number) => {
+    // Marker标记点
     const marker = new AMap.Marker({
       position: [Number(point.lng), Number(point.lat)],
       title: point.name,
@@ -263,7 +278,7 @@ const renderTripMap = async (spotNames: string[]) => {
       },
       map
     })
-
+    // InfoWindow 信息弹窗
     marker.on('click', () => {
       infoWindow.setContent(`
         <div style="width:220px;">
@@ -279,7 +294,7 @@ const renderTripMap = async (spotNames: string[]) => {
   if (searchedPoints.length >= 2) {
     drawDrivingRoute(searchedPoints)
   }
-
+// 自适应视野
   map.setFitView()
 }
 

@@ -56,6 +56,7 @@ security = HTTPBearer()
 
 Base.metadata.create_all(bind=engine)
 
+# 后端Token生成代码
 SECRET_KEY = "ai-travel-secret-key"
 ALGORITHM = "HS256"
 
@@ -74,12 +75,14 @@ def hash_password(password: str):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+# 后端Token生成代码
 def create_token(username: str):
     data = {"sub": username}
     token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
+# 后端解析当前用户代码
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
@@ -100,6 +103,7 @@ def get_current_user(
     return user
 
 
+# 后端管理员校验代码
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="没有管理员权限")
@@ -157,6 +161,7 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
     }
 
 
+# 登录成功后返回 token 和用户角色，前端根据角色展示不同界面
 @app.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
@@ -298,6 +303,7 @@ def ai_plan_stream(
     if not DEEPSEEK_API_KEY:
         raise HTTPException(status_code=500, detail="没有配置 DEEPSEEK_API_KEY")
 
+    # Agent Service：分析用户需求、检索本地景点数据、整理景点资料、生成最终 prompt
     user_need = analyze_user_need(req)
     spots = search_spots(db, user_need["destination"])
     spot_text = build_spot_text(spots)
@@ -331,6 +337,7 @@ def ai_plan_stream(
                 timeout=60,
             )
 
+            # 后端接收 DeepSeek 的流式内容
             response.raise_for_status()
 
             for line in response.iter_lines(decode_unicode=True):
@@ -366,9 +373,11 @@ def ai_plan_stream(
         except Exception as e:
             yield f"\nAI接口调用失败：{str(e)}"
 
+    # 返回给前端一个流式响应，前端会一边收到一边显示
     return StreamingResponse(generate(), media_type="text/plain; charset=utf-8")
 
 
+# 高德地图 POI 提取接口：从用户输入的行程文本中提取景点名称，供地图展示和 RAG 检索使用
 @app.post("/ai/extract-spots")
 def extract_spots(
     req: ExtractSpotRequest,
@@ -552,10 +561,10 @@ def admin_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    user_count = db.query(User).count()
-    trip_count = db.query(TravelPlan).count()
-    scenic_count = db.query(ScenicSpot).count()
-    ai_count = db.query(AiLog).count()
+    user_count = db.query(User).count()                  # 用户总数
+    trip_count = db.query(TravelPlan).count()            # 行程总数
+    scenic_count = db.query(ScenicSpot).count()          # 景点总数
+    ai_count = db.query(AiLog).count()                   # AI调用次数
 
     top_destinations_query = (
         db.query(TravelPlan.destination, func.count(TravelPlan.id).label("count"))

@@ -8,6 +8,7 @@ const request = axios.create({
   timeout: 30000
 })
 
+// 前端请求自动带token
 request.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
 

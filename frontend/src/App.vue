@@ -47,6 +47,7 @@ const page = ref('ai')
 
 const theme = ref(localStorage.getItem('theme') || 'light')
 
+// 主题切换
 const toggleTheme = () => {
   theme.value = theme.value === 'light' ? 'dark' : 'light'
   localStorage.setItem('theme', theme.value)

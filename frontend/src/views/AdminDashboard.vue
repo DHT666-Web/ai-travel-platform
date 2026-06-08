@@ -60,7 +60,7 @@ const stats = ref({
   ai_count: 0,
   top_destinations: [] as any[]
 })
-
+// 数据加载函数
 const loadStats = async () => {
   const res = await request.get('/admin/statistics')
   stats.value = res.data.data
@@ -68,12 +68,13 @@ const loadStats = async () => {
   await nextTick()
   renderChart()
 }
-
+// 图表渲染函数
 const renderChart = () => {
   if (!chartRef.value) return
 
   const chart = echarts.init(chartRef.value)
 
+  // ECharts部分：
   chart.setOption({
     title: {
       text: '热门目的地统计',
