@@ -350,11 +350,34 @@ onMounted(() => {
 }
 
 .top {
+  width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
 }
 
+.top h2 {
+  margin: 0;
+  width: 100%;
+  font-size: 28px;
+  line-height: 1.4;
+}
+
+.top-buttons {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.top-buttons button {
+  flex: 0 0 125px;
+  height: 52px;
+  border-radius: 8px;
+  font-size: 15px;
+  white-space: nowrap;
+}
 .form {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -384,7 +407,6 @@ button:disabled {
 }
 
 .logout {
-  width: 100px;
   background: #f56c6c;
 }
 
@@ -417,32 +439,26 @@ pre {
 }
 
 .list-btn {
-  width: 100px;
   background: #67c23a;
 }
 
 .scenic-btn {
-  width: 100px;
   background: #e6a23c;
 }
 
 .admin-btn {
-  width: 100px;
   background: #909399;
 }
 
 .map-btn {
-  width: 100px;
   background: #8e44ad;
 }
 
 .theme-btn {
-  width: 100px;
   background: #606266;
 }
 
 .lang-btn {
-  width: 100px;
   background: #303133;
 }
 
