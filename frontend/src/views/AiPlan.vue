@@ -489,9 +489,24 @@ pre {
   }
 
   .top {
-    flex-direction: column;
     align-items: flex-start;
     gap: 15px;
+  }
+
+  .top h2 {
+    font-size: 26px;
+  }
+
+  .top-buttons {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .top-buttons button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    height: 44px;
+    font-size: 14px;
   }
 
   .form {
