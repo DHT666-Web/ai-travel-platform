@@ -16,7 +16,7 @@
           <button v-if="role === 'admin'" class="admin-btn" @click="emit('go-admin')">
             {{ t('dashboard') }}
           </button>
-
+           <!-- 主题切换 -->
           <button class="theme-btn" @click="emit('toggle-theme')">{{ t('theme') }}</button>
           <!-- 中英文切换按钮 -->
           <button class="lang-btn" @click="toggleLang">中 / EN</button>
@@ -33,7 +33,7 @@
         <button @click="generatePlan" :disabled="loading">
           {{ loading ? t('generating') : t('generate') }}
         </button>
-
+       
         <button class="save-btn" @click="savePlan" :disabled="!result">
           {{ t('save') }}
         </button>
@@ -97,7 +97,7 @@ const generatePlan = async () => {
         days: days.value,
         budget: budget.value,
         preference: preference.value,
-        language: localStorage.getItem('lang') || 'zh'
+        language: localStorage.getItem('lang') || 'zh'  // 英文流式输出
       })
     })
 
