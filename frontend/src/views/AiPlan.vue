@@ -6,7 +6,6 @@
 
         <div class="top-buttons">
           <button class="list-btn" @click="emit('go-list')">{{ t('myTrips') }}</button>
-          <button class="list-btn" @click="emit('go-list')">{{ t('myTrips') }}</button>
           <button class="map-btn" @click="emit('go-map')">{{ t('map') }}</button>
 
           <!-- 管理员功能按钮 -->
