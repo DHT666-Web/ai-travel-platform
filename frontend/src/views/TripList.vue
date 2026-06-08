@@ -2,7 +2,7 @@
   <div class="page">
     <div class="card">
       <div class="top">
-        <h2>我的行程</h2>
+        <h2>我的</h2>
         <button @click="emit('back')">返回AI规划</button>
       </div>
 
